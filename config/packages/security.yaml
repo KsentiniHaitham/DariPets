@@ -38,6 +38,7 @@ security:
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
         - { path: ^/api/payment/cmi/callback, roles: PUBLIC_ACCESS }
+        - { path: ^/api/debug-auth, roles: PUBLIC_ACCESS }
         - { path: ^/api/admin, roles: ROLE_ADMIN }
         - { path: ^/api, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
