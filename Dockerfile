@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Apache : docroot sur public/ + AllowOverride pour le routage Symfony
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf \
-    && printf '<Directory /var/www/html/public>\n  AllowOverride None\n  Require all granted\n  FallbackResource /index.php\n</Directory>\n' \
+    && printf '<Directory /var/www/html/public>\n  AllowOverride None\n  Require all granted\n  RewriteEngine On\n  RewriteRule .* - [E=HTTP_AUTHORIZATION:%%{HTTP:Authorization}]\n  FallbackResource /index.php\n</Directory>\n' \
         > /etc/apache2/conf-available/symfony.conf \
     && a2enconf symfony
 
