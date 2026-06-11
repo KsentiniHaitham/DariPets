@@ -7,6 +7,8 @@ const routes = [
   { path: '/gardien/:id', name: 'sitter', component: () => import('@/views/SitterView.vue'), props: true },
   { path: '/connexion', name: 'login', component: () => import('@/views/LoginView.vue') },
   { path: '/login', redirect: '/connexion' },
+  { path: '/cgv', name: 'cgv', component: () => import('@/views/CgvView.vue') },
+  { path: '/confidentialite', name: 'confidentialite', component: () => import('@/views/ConfidentialiteView.vue') },
   { path: '/inscription', name: 'register', component: () => import('@/views/RegisterView.vue') },
   { path: '/comment-ca-marche', name: 'how-it-works', component: () => import('@/views/HowItWorksView.vue') },
   { path: '/devenir-gardien', name: 'become-sitter', component: () => import('@/views/BecomeSitterView.vue') },

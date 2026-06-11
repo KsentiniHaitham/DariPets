@@ -32,6 +32,10 @@ const year = new Date().getFullYear()
         </v-col>
       </v-row>
       <v-divider class="my-4" />
+      <div class="d-flex flex-wrap justify-center ga-4 mb-2">
+        <router-link :to="{ name: 'cgv' }" class="text-grey-lighten-1 text-decoration-none text-caption">Conditions Générales de Vente</router-link>
+        <router-link :to="{ name: 'confidentialite' }" class="text-grey-lighten-1 text-decoration-none text-caption">Politique de Confidentialité</router-link>
+      </div>
       <div class="text-center text-grey-lighten-1">
         © {{ year }} {{ t('brand') }}. {{ t('footer.rights') }}
       </div>
