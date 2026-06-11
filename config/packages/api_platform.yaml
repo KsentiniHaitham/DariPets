@@ -1,0 +1,16 @@
+api_platform:
+    title: Animaute Maroc API
+    description: API de la marketplace de garde d'animaux au Maroc
+    version: 1.0.0
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+    docs_formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+        html: ['text/html']
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    use_symfony_listeners: true

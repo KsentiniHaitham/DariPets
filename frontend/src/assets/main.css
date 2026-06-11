@@ -1,0 +1,134 @@
+html { overflow-y: auto; scroll-behavior: smooth; }
+body { margin: 0; }
+
+/* ---------- Typographie moderne ---------- */
+.v-application {
+  font-family: 'Inter', 'Tajawal', system-ui, sans-serif !important;
+}
+.v-application h1, .v-application h2, .v-application h3,
+.v-application .text-h1, .v-application .text-h2, .v-application .text-h3,
+.v-application .text-h4, .v-application .text-h5 {
+  font-family: 'Poppins', 'Tajawal', system-ui, sans-serif !important;
+  letter-spacing: -0.02em !important;
+}
+/* L'arabe garde Tajawal partout */
+html[lang="ar"] .v-application,
+html[lang="ar"] .v-application h1, html[lang="ar"] .v-application h2,
+html[lang="ar"] .v-application .text-h2, html[lang="ar"] .v-application .text-h3,
+html[lang="ar"] .v-application .text-h4, html[lang="ar"] .v-application .text-h5 {
+  font-family: 'Tajawal', system-ui, sans-serif !important;
+}
+
+/* ---------- Hero dégradé moderne ---------- */
+.hero-gradient {
+  position: relative;
+  background: linear-gradient(130deg, #4F46E5 0%, #7C3AED 45%, #C026D3 80%, #EC4899 110%);
+  overflow: hidden;
+}
+/* Halos lumineux organiques */
+.hero-gradient::before,
+.hero-gradient::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: .45;
+  pointer-events: none;
+}
+.hero-gradient::before {
+  width: 480px; height: 480px;
+  background: #F472B6;
+  top: -180px; right: -120px;
+}
+.hero-gradient::after {
+  width: 420px; height: 420px;
+  background: #38BDF8;
+  bottom: -200px; left: -140px;
+}
+.hero-gradient > * { position: relative; z-index: 1; }
+
+/* Carte de recherche « verre dépoli » */
+.glass-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 24px 60px -16px rgba(30, 27, 46, 0.35) !important;
+}
+
+/* Badge « pill » translucide sur fond dégradé */
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(6px);
+  font-weight: 600;
+  font-size: .85rem;
+}
+
+/* ---------- Sections ---------- */
+.section { padding: 72px 0; }
+.text-balance { text-wrap: balance; }
+.section-eyebrow {
+  display: inline-block;
+  color: #7C3AED;
+  background: #F1EEFB;
+  font-weight: 700;
+  font-size: .8rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Cartes ---------- */
+.sitter-card {
+  transition: transform .22s ease, box-shadow .22s ease;
+  border: 1px solid #E6E1F5 !important;
+}
+.sitter-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 44px -18px rgba(124, 58, 237, 0.35) !important;
+}
+
+.service-tile {
+  transition: transform .2s ease, box-shadow .2s ease;
+  border: 1px solid #E6E1F5 !important;
+  background: #fff !important;
+}
+.service-tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 36px -16px rgba(124, 58, 237, 0.3) !important;
+}
+.service-icon {
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #EDE9FE, #F1EEFB);
+}
+
+/* Pastille étape (comment ça marche) */
+.step-badge {
+  width: 68px; height: 68px;
+  border-radius: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7C3AED, #C026D3);
+  color: #fff;
+  box-shadow: 0 14px 28px -10px rgba(124, 58, 237, 0.5);
+}
+
+/* Avatar avec anneau dégradé */
+.avatar-ring {
+  padding: 3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #EC4899);
+  display: inline-flex;
+}

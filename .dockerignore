@@ -1,0 +1,10 @@
+.git
+var/cache
+var/log
+vendor
+frontend/node_modules
+frontend/dist
+.env.local
+config/jwt/*.pem
+start-dev.ps1
+start-dev.bat
