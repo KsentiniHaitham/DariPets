@@ -8,6 +8,7 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
+        schema_filter: '~^(user|pet_sitter_profile|animal|service|booking|conversation|message|review|region|city|favorite|conversation_user|pet_sitter_profile_service)$~'
         mapping_types:
             _text: string
             _int4: integer
@@ -15,6 +16,16 @@ doctrine:
             _bool: boolean
             _varchar: string
             _float8: float
+            code_challenge_method: string
+            factor_status: string
+            factor_type: string
+            aal_level: string
+            one_time_token_type: string
+            key_status: string
+            key_type: string
+            action: string
+            equality_op: string
+            request_status: string
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true
