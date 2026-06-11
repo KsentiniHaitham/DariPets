@@ -6,6 +6,7 @@ const routes = [
   { path: '/recherche', name: 'search', component: () => import('@/views/SearchView.vue') },
   { path: '/gardien/:id', name: 'sitter', component: () => import('@/views/SitterView.vue'), props: true },
   { path: '/connexion', name: 'login', component: () => import('@/views/LoginView.vue') },
+  { path: '/login', redirect: '/connexion' },
   { path: '/inscription', name: 'register', component: () => import('@/views/RegisterView.vue') },
   { path: '/comment-ca-marche', name: 'how-it-works', component: () => import('@/views/HowItWorksView.vue') },
   { path: '/devenir-gardien', name: 'become-sitter', component: () => import('@/views/BecomeSitterView.vue') },
