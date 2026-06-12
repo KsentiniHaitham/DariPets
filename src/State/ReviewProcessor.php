@@ -5,10 +5,12 @@ namespace App\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Booking;
+use App\Entity\Notification;
 use App\Entity\Review;
 use App\Entity\User;
 use App\Repository\BookingRepository;
 use App\Repository\ReviewRepository;
+use App\Service\AppNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -28,6 +30,7 @@ final class ReviewProcessor implements ProcessorInterface
         private ReviewRepository $reviews,
         private BookingRepository $bookings,
         private EntityManagerInterface $em,
+        private AppNotifier $notifier,
     ) {
     }
 
@@ -48,10 +51,21 @@ final class ReviewProcessor implements ProcessorInterface
             }
         }
 
+        $isNew = $data instanceof Review && $data->getId() === null;
         $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
         if ($data instanceof Review && $data->getTarget()) {
             $this->recomputeRating($data->getTarget());
+
+            if ($isNew) {
+                $this->notifier->notify($data->getTarget(), Notification::REVIEW_RECEIVED,
+                    sprintf('⭐ Nouvel avis %d/5 de %s', $data->getRating(), $data->getAuthor()?->getFullName() ?? 'un client'), '/mon-profil');
+                if ($data->getRating() <= 2) {
+                    $this->notifier->notifyAdmins(Notification::REVIEW_NEGATIVE,
+                        sprintf('⚠️ Avis négatif (%d/5) sur %s', $data->getRating(), $data->getTarget()->getFullName()), '/admin');
+                }
+                $this->notifier->flush();
+            }
         }
 
         return $result;

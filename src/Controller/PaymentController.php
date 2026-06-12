@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Booking;
+use App\Entity\Notification;
 use App\Entity\User;
 use App\Payment\CmiClient;
 use App\Repository\BookingRepository;
+use App\Service\AppNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,6 +22,7 @@ class PaymentController extends AbstractController
         private CmiClient $cmi,
         private BookingRepository $bookings,
         private EntityManagerInterface $em,
+        private AppNotifier $notifier,
     ) {
     }
 
@@ -72,6 +75,14 @@ class PaymentController extends AbstractController
 
         if ($approved) {
             $booking->setStatus(Booking::STATUS_PAID);
+            if ($booking->getSitter()) {
+                $this->notifier->notify($booking->getSitter(), Notification::BOOKING_PAID,
+                    sprintf('💰 Réservation payée — %s MAD net pour vous', $booking->getSitterPayout()), '/mes-revenus');
+            }
+            if ($booking->getOwner()) {
+                $this->notifier->notify($booking->getOwner(), Notification::BOOKING_PAID,
+                    sprintf('💳 Paiement confirmé (%s MAD) — votre réservation est validée', $booking->getTotalPrice()), '/espace');
+            }
             $this->em->flush();
         }
 

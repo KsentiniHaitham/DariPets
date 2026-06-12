@@ -19,7 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Get(security: "is_granted('ROLE_USER') and (object.getOwner() == user or object.getSitter() == user)"),
         new Post(security: "is_granted('ROLE_USER')", processor: BookingProcessor::class),
-        new Patch(security: "is_granted('ROLE_USER') and (object.getOwner() == user or object.getSitter() == user)"),
+        new Patch(security: "is_granted('ROLE_USER') and (object.getOwner() == user or object.getSitter() == user)", processor: BookingProcessor::class),
     ],
     normalizationContext: ['groups' => ['booking:read']],
     denormalizationContext: ['groups' => ['booking:write']],

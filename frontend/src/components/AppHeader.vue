@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useUnreadStore } from '@/stores/unread.js'
+import { useNotificationsStore } from '@/stores/notifications.js'
 import { SUPPORTED_LOCALES } from '@/plugins/i18n.js'
 import BrandLogo from '@/components/BrandLogo.vue'
 
@@ -11,14 +12,17 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
 const unread = useUnreadStore()
+const notifs = useNotificationsStore()
 const drawer = ref(false)
 
-// Démarre/arrête le polling du compteur de non-lus selon la connexion
+// Démarre/arrête le polling (messages non lus + notifications) selon la connexion
 watch(
   () => auth.isAuthenticated,
   (connected) => {
     if (connected && !auth.isAdmin) unread.startPolling()
     else unread.stopPolling()
+    if (connected) notifs.startPolling()
+    else notifs.stopPolling()
   },
   { immediate: true },
 )
@@ -33,6 +37,48 @@ watch(
     }
   },
 )
+
+// Snackbar quand une nouvelle notification arrive
+const notifSnack = ref(false)
+const notifSnackTitle = ref('')
+watch(
+  () => notifs.lastIncoming,
+  (incoming) => {
+    if (incoming) {
+      notifSnackTitle.value = incoming.title
+      notifSnack.value = true
+    }
+  },
+)
+
+// Icône par type de notification
+const notifIcons = {
+  booking_request: 'mdi-calendar-plus',
+  booking_accepted: 'mdi-calendar-check',
+  booking_rejected: 'mdi-calendar-remove',
+  booking_cancelled: 'mdi-calendar-remove',
+  booking_paid: 'mdi-cash-check',
+  booking_completed: 'mdi-paw',
+  review_received: 'mdi-star',
+  review_negative: 'mdi-alert',
+  report_new: 'mdi-flag',
+  kyc_submitted: 'mdi-card-account-details',
+  sitter_registered: 'mdi-account-plus',
+}
+
+function openNotification(n) {
+  notifs.markRead(n)
+  if (n.link) router.push(n.link)
+}
+
+function timeAgo(iso) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 1) return "à l'instant"
+  if (mins < 60) return `il y a ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `il y a ${hours} h`
+  return `il y a ${Math.floor(hours / 24)} j`
+}
 
 // Liens principaux selon le rôle de l'utilisateur
 const navLinks = computed(() => {
@@ -92,6 +138,38 @@ function logout() {
               <v-icon>mdi-message-outline</v-icon>
             </v-badge>
           </v-btn>
+
+          <!-- Cloche notifications (tous rôles, admin inclus) -->
+          <v-menu width="380" max-height="440">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" variant="text" icon>
+                <v-badge :content="notifs.unread" color="error" :model-value="notifs.unread > 0">
+                  <v-icon>mdi-bell-outline</v-icon>
+                </v-badge>
+              </v-btn>
+            </template>
+            <v-card>
+              <div class="d-flex align-center px-4 py-2">
+                <span class="font-weight-bold">Notifications</span>
+                <v-spacer />
+                <v-btn v-if="notifs.unread > 0" size="x-small" variant="text" color="primary" @click.stop="notifs.markAllRead()">
+                  Tout marquer lu
+                </v-btn>
+              </div>
+              <v-divider />
+              <v-list v-if="notifs.items.length" density="comfortable">
+                <v-list-item v-for="n in notifs.items" :key="n.id" @click="openNotification(n)"
+                  :class="n.isRead ? '' : 'bg-purple-lighten-5'">
+                  <template #prepend>
+                    <v-icon :color="n.isRead ? 'grey' : 'primary'">{{ notifIcons[n.type] || 'mdi-bell' }}</v-icon>
+                  </template>
+                  <v-list-item-title class="text-body-2" style="white-space: normal">{{ n.title }}</v-list-item-title>
+                  <v-list-item-subtitle class="text-caption">{{ timeAgo(n.createdAt) }}</v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+              <div v-else class="pa-6 text-center text-grey">Aucune notification</div>
+            </v-card>
+          </v-menu>
           <v-menu>
             <template #activator="{ props }">
               <v-btn v-bind="props" variant="tonal" color="primary" prepend-icon="mdi-account-circle">
@@ -123,6 +201,12 @@ function logout() {
       </div>
     </v-container>
   </v-app-bar>
+
+  <!-- Notification générique (réservation, paiement, avis…) -->
+  <v-snackbar v-model="notifSnack" color="primary" timeout="6000" location="top right">
+    <v-icon class="me-2">mdi-bell-ring</v-icon>
+    {{ notifSnackTitle }}
+  </v-snackbar>
 
   <!-- Notification nouveau message -->
   <v-snackbar v-model="newMessageSnack" color="primary" timeout="5000" location="top right">

@@ -14,6 +14,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use App\Repository\PetSitterProfileRepository;
+use App\State\SitterProfileProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -24,9 +25,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new GetCollection(),
         new Get(),
-        new Post(security: "is_granted('ROLE_USER')"),
-        new Put(security: "object.getUser() == user"),
-        new Patch(security: "object.getUser() == user"),
+        new Post(security: "is_granted('ROLE_USER')", processor: SitterProfileProcessor::class),
+        new Put(security: "object.getUser() == user", processor: SitterProfileProcessor::class),
+        new Patch(security: "object.getUser() == user", processor: SitterProfileProcessor::class),
     ],
     normalizationContext: ['groups' => ['sitter:read']],
     denormalizationContext: ['groups' => ['sitter:write']],
