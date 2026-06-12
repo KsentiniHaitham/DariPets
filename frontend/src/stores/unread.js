@@ -19,7 +19,7 @@ export const useUnreadStore = defineStore('unread', {
     startPolling() {
       if (this.timer) return
       this.fetch()
-      this.timer = setInterval(() => this.fetch(), 30000)
+      this.timer = setInterval(() => this.fetch(), 15000)
     },
     stopPolling() {
       if (this.timer) {

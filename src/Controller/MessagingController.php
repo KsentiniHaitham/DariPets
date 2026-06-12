@@ -19,8 +19,12 @@ class MessagingController extends AbstractController
     {
     }
 
-    /** Nombre de messages non lus de l'utilisateur connecté (pour le badge navbar). */
-    #[Route('/messages/unread-count', name: 'messages_unread_count', methods: ['GET'])]
+    /**
+     * Nombre de messages non lus de l'utilisateur connecté (pour le badge navbar).
+     * priority: 10 — doit passer avant la route API Platform /api/messages/{id},
+     * sinon « unread-count » est interprété comme un id de message (500).
+     */
+    #[Route('/messages/unread-count', name: 'messages_unread_count', methods: ['GET'], priority: 10)]
     public function unreadCount(): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_USER');

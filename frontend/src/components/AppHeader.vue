@@ -23,6 +23,17 @@ watch(
   { immediate: true },
 )
 
+// Notification visuelle quand un nouveau message arrive (hors page Messages)
+const newMessageSnack = ref(false)
+watch(
+  () => unread.count,
+  (now, before) => {
+    if (now > before && router.currentRoute.value.name !== 'messages') {
+      newMessageSnack.value = true
+    }
+  },
+)
+
 // Liens principaux selon le rôle de l'utilisateur
 const navLinks = computed(() => {
   if (!auth.isAuthenticated) {
@@ -112,6 +123,15 @@ function logout() {
       </div>
     </v-container>
   </v-app-bar>
+
+  <!-- Notification nouveau message -->
+  <v-snackbar v-model="newMessageSnack" color="primary" timeout="5000" location="top right">
+    <v-icon class="me-2">mdi-message-badge</v-icon>
+    Vous avez reçu un nouveau message
+    <template #actions>
+      <v-btn variant="text" @click="newMessageSnack = false; router.push({ name: 'messages' })">Voir</v-btn>
+    </template>
+  </v-snackbar>
 
   <v-navigation-drawer v-model="drawer" temporary>
     <v-list>
