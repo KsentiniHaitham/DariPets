@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import api from '@/services/api.js'
@@ -13,8 +13,16 @@ const conversations = ref([])
 const active = ref(null)
 const draft = ref('')
 const loading = ref(true)
+const sending = ref(false)
+const messagesBox = ref(null)
 
 const otherParticipant = (c) => c.participants?.find((p) => p.id !== auth.user.id) || c.participants?.[0]
+
+function scrollToBottom() {
+  nextTick(() => {
+    if (messagesBox.value) messagesBox.value.scrollTop = messagesBox.value.scrollHeight
+  })
+}
 
 async function load() {
   const { data } = await api.get('/conversations')
@@ -23,24 +31,86 @@ async function load() {
     // Ouvre la conversation demandée via ?c=ID (depuis le bouton « Contacter »)
     const wanted = route.query.c ? data.find((x) => x.id === Number(route.query.c)) : null
     active.value = wanted || data[0]
+    scrollToBottom()
   }
   loading.value = false
 }
 
-async function send() {
-  if (!draft.value.trim() || !active.value) return
-  await api.post('/messages', {
-    conversation: `/api/conversations/${active.value.id}`,
-    sender: `/api/users/${auth.user.id}`,
-    body: draft.value,
-  })
-  draft.value = ''
-  const { data } = await api.get(`/conversations/${active.value.id}`)
-  active.value = data
-  await load()
+function selectConversation(c) {
+  active.value = c
+  scrollToBottom()
 }
 
-onMounted(load)
+async function send() {
+  if (!draft.value.trim() || !active.value || sending.value) return
+  sending.value = true
+  const body = draft.value
+  draft.value = ''
+  try {
+    // Le POST retourne le message créé (avec masquage éventuel côté serveur) :
+    // on l'ajoute directement à la discussion, sans recharger la page
+    const { data: msg } = await api.post('/messages', {
+      conversation: `/api/conversations/${active.value.id}`,
+      body,
+    })
+    if (!active.value.messages) active.value.messages = []
+    active.value.messages.push(msg)
+    scrollToBottom()
+  } catch (e) {
+    draft.value = body // restaure le brouillon en cas d'échec
+    throw e
+  } finally {
+    sending.value = false
+  }
+}
+
+// Rafraîchit la conversation active toutes les 12 s pour voir les réponses
+// de l'interlocuteur sans recharger la page
+async function refreshActive() {
+  if (!active.value || sending.value) return
+  try {
+    const { data } = await api.get(`/conversations/${active.value.id}`)
+    if ((data.messages?.length ?? 0) > (active.value.messages?.length ?? 0)) {
+      active.value.messages = data.messages
+      scrollToBottom()
+    }
+  } catch {
+    // silencieux : on retentera au prochain tick
+  }
+}
+
+let pollTimer = null
+onMounted(() => {
+  load()
+  pollTimer = setInterval(refreshActive, 12000)
+})
+onUnmounted(() => clearInterval(pollTimer))
+
+// --- Signalement d'utilisateur ---
+const reportDialog = ref(false)
+const reportReason = ref('comportement')
+const reportDetails = ref('')
+const reportSent = ref(false)
+const reportReasons = [
+  { value: 'contournement', title: 'Tentative de contact hors plateforme' },
+  { value: 'comportement', title: 'Comportement inapproprié' },
+  { value: 'fraude', title: 'Fraude ou arnaque' },
+  { value: 'spam', title: 'Spam' },
+  { value: 'autre', title: 'Autre' },
+]
+
+async function sendReport() {
+  const other = otherParticipant(active.value)
+  if (!other) return
+  await api.post('/reports', {
+    reported: `/api/users/${other.id}`,
+    reason: reportReason.value,
+    details: reportDetails.value,
+  })
+  reportDialog.value = false
+  reportDetails.value = ''
+  reportSent.value = true
+}
 </script>
 
 <template>
@@ -54,7 +124,7 @@ onMounted(load)
       <v-row no-gutters style="min-height: 480px">
         <v-col cols="12" md="4" class="border-e">
           <v-list>
-            <v-list-item v-for="c in conversations" :key="c.id" :active="active?.id === c.id" @click="active = c">
+            <v-list-item v-for="c in conversations" :key="c.id" :active="active?.id === c.id" @click="selectConversation(c)">
               <template #prepend>
                 <v-avatar color="primary"><span>{{ otherParticipant(c)?.firstName?.[0] }}</span></v-avatar>
               </template>
@@ -65,7 +135,14 @@ onMounted(load)
         </v-col>
 
         <v-col cols="12" md="8" class="d-flex flex-column">
-          <div class="flex-grow-1 pa-4" style="overflow-y:auto; max-height: 420px">
+          <div v-if="active" class="d-flex align-center px-4 py-2 border-b">
+            <span class="font-weight-medium">{{ otherParticipant(active)?.fullName }}</span>
+            <v-spacer />
+            <v-btn size="small" variant="text" color="error" prepend-icon="mdi-flag" @click="reportDialog = true">
+              Signaler
+            </v-btn>
+          </div>
+          <div ref="messagesBox" class="flex-grow-1 pa-4" style="overflow-y:auto; max-height: 420px">
             <div v-for="m in active?.messages" :key="m.id"
               class="d-flex mb-2" :class="m.sender?.id === auth.user.id ? 'justify-end' : 'justify-start'">
               <v-sheet rounded="lg" class="pa-2 px-3" :color="m.sender?.id === auth.user.id ? 'primary' : 'grey-lighten-3'"
@@ -78,11 +155,30 @@ onMounted(load)
           <div class="pa-3 d-flex ga-2">
             <v-text-field v-model="draft" :placeholder="t('messages.placeholder')" hide-details density="comfortable"
               @keyup.enter="send" />
-            <v-btn color="primary" icon="mdi-send" @click="send" />
+            <v-btn color="primary" icon="mdi-send" :loading="sending" @click="send" />
           </div>
         </v-col>
       </v-row>
     </v-card>
     <v-alert v-else-if="!loading" type="info" variant="tonal">{{ t('messages.noConversations') }}</v-alert>
+
+    <!-- Dialog de signalement -->
+    <v-dialog v-model="reportDialog" max-width="480">
+      <v-card class="pa-4">
+        <v-card-title class="text-h6">Signaler {{ otherParticipant(active)?.fullName }}</v-card-title>
+        <v-card-text>
+          <v-select v-model="reportReason" :items="reportReasons" label="Motif" class="mb-2" />
+          <v-textarea v-model="reportDetails" label="Détails (facultatif)" rows="3" />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="reportDialog = false">Annuler</v-btn>
+          <v-btn color="error" variant="flat" @click="sendReport">Envoyer le signalement</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-snackbar v-model="reportSent" color="success" timeout="4000">
+      Signalement envoyé. Notre équipe va l'examiner.
+    </v-snackbar>
   </v-container>
 </template>

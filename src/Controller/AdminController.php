@@ -121,15 +121,35 @@ class AdminController extends AbstractController
         ]);
     }
 
-    /** Vérifie / dé-vérifie un profil gardien. */
+    /** Vérifie / dé-vérifie un profil gardien (KYC : pièce d'identité requise). */
     #[Route('/sitters/{id}/verify', name: 'admin_sitter_verify', methods: ['POST'])]
     public function verifySitter(PetSitterProfile $profile): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
+        if (!$profile->isVerified() && !$profile->isIdDocumentSubmitted()) {
+            return $this->json(
+                ['error' => 'Ce gardien n\'a pas encore soumis sa pièce d\'identité (KYC).'],
+                422
+            );
+        }
+
         $profile->setVerified(!$profile->isVerified());
         $this->em->flush();
 
         return $this->json(['id' => $profile->getId(), 'verified' => $profile->isVerified()]);
+    }
+
+    /** Consulte la pièce d'identité soumise par un gardien (admin uniquement). */
+    #[Route('/sitters/{id}/document', name: 'admin_sitter_document', methods: ['GET'])]
+    public function sitterDocument(PetSitterProfile $profile): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        return $this->json([
+            'id' => $profile->getId(),
+            'sitter' => $profile->getUser()?->getFullName(),
+            'idDocument' => $profile->getIdDocument(),
+        ]);
     }
 }

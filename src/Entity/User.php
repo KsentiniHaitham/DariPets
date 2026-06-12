@@ -48,7 +48,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read', 'sitter:read', 'booking:read', 'message:read', 'review:read'])]
+    #[Groups(['user:read', 'sitter:read', 'booking:read', 'message:read', 'review:read', 'report:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
@@ -72,12 +72,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'message:read', 'review:read'])]
+    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'message:read', 'review:read', 'report:read'])]
     private string $firstName;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'review:read'])]
+    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'review:read', 'report:read'])]
     private string $lastName;
 
     #[ORM\Column(length: 30, nullable: true)]
@@ -309,7 +309,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    #[Groups(['user:read', 'sitter:read', 'message:read', 'review:read'])]
+    #[Groups(['user:read', 'sitter:read', 'message:read', 'review:read', 'report:read'])]
     public function getFullName(): string
     {
         return trim($this->firstName . ' ' . $this->lastName);

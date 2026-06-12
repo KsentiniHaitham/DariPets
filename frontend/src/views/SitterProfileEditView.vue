@@ -17,6 +17,7 @@ const saved = ref(false)
 const form = ref({
   headline: '', description: '', dailyRate: null, hourlyRate: null,
   experienceYears: null, serviceRadius: 10, animals: [], serviceIds: [],
+  idDocument: '',
 })
 
 async function load() {
@@ -40,6 +41,7 @@ async function load() {
       serviceRadius: data.serviceRadius ?? 10,
       animals: (data.acceptedAnimalTypes || '').split(',').filter(Boolean),
       serviceIds: (data.services || []).map((s) => s.id),
+      idDocument: '', // jamais relu depuis l'API (confidentiel) ; idDocumentSubmitted indique l'état
     }
   }
   loading.value = false
@@ -58,6 +60,9 @@ async function save() {
       serviceRadius: form.value.serviceRadius,
       acceptedAnimalTypes: form.value.animals.join(','),
       services: form.value.serviceIds.map((id) => `/api/services/${id}`),
+    }
+    if (form.value.idDocument?.trim()) {
+      payload.idDocument = form.value.idDocument.trim()
     }
     if (profile.value) {
       const { data } = await api.patch(`/pet_sitter_profiles/${profile.value.id}`, payload, {
@@ -106,6 +111,23 @@ onMounted(load)
       <v-select
         v-model="form.serviceIds" multiple chips :label="t('sitterProfile.services')"
         :items="services" item-title="name" item-value="id" />
+
+      <v-divider class="my-4" />
+      <h3 class="text-subtitle-1 font-weight-bold mb-1">Vérification d'identité (KYC)</h3>
+      <v-alert v-if="profile?.idDocumentSubmitted" type="success" variant="tonal" density="compact" class="mb-3">
+        Pièce d'identité soumise — en attente de validation par l'équipe DariPets.
+      </v-alert>
+      <p v-else class="text-body-2 text-grey-darken-1 mb-2">
+        Pour obtenir le badge « Vérifié », indique ton numéro de CIN ou un lien vers
+        une copie de ta pièce d'identité. Cette information n'est visible que par
+        l'équipe DariPets, jamais par les autres utilisateurs.
+      </p>
+      <v-text-field
+        v-model="form.idDocument"
+        label="N° CIN ou lien vers la pièce d'identité"
+        prepend-inner-icon="mdi-card-account-details"
+        :placeholder="profile?.idDocumentSubmitted ? 'Déjà soumise — remplir pour remplacer' : 'Ex. AB123456'"
+      />
 
       <v-alert v-if="saved" type="success" variant="tonal" class="mt-4">{{ t('sitterProfile.saved') }}</v-alert>
       <v-btn color="primary" size="large" block class="mt-4" :loading="saving" @click="save">

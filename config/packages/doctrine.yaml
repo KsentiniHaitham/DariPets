@@ -8,7 +8,7 @@ doctrine:
 
         profiling_collect_backtrace: '%kernel.debug%'
         use_savepoints: true
-        schema_filter: '~^(user|pet_sitter_profile|animal|service|booking|conversation|message|review|region|city|favorite|conversation_user|pet_sitter_profile_service)$~'
+        schema_filter: '~^(user|pet_sitter_profile|animal|service|booking|conversation|message|review|region|city|favorite|report|conversation_user|pet_sitter_profile_service)$~'
         mapping_types:
             _text: string
             _int4: integer

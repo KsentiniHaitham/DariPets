@@ -4,16 +4,20 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
+use App\Entity\Booking;
 use App\Entity\Review;
 use App\Entity\User;
+use App\Repository\BookingRepository;
 use App\Repository\ReviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
- * À la création d'un avis : fixe l'auteur (utilisateur connecté) et recalcule
- * la note moyenne + le nombre d'avis du gardien évalué.
+ * À la création d'un avis : fixe l'auteur (utilisateur connecté), exige une
+ * réservation terminée entre l'auteur et le gardien (anti faux avis), puis
+ * recalcule la note moyenne + le nombre d'avis du gardien évalué.
  */
 final class ReviewProcessor implements ProcessorInterface
 {
@@ -22,6 +26,7 @@ final class ReviewProcessor implements ProcessorInterface
         private ProcessorInterface $persistProcessor,
         private Security $security,
         private ReviewRepository $reviews,
+        private BookingRepository $bookings,
         private EntityManagerInterface $em,
     ) {
     }
@@ -32,6 +37,14 @@ final class ReviewProcessor implements ProcessorInterface
             $current = $this->security->getUser();
             if ($current instanceof User) {
                 $data->setAuthor($current);
+
+                // Anti faux avis : une prestation terminée est requise
+                $target = $data->getTarget();
+                if ($target && !$this->hasCompletedBooking($current, $target)) {
+                    throw new UnprocessableEntityHttpException(
+                        'Vous ne pouvez laisser un avis qu\'après une réservation terminée avec ce gardien.'
+                    );
+                }
             }
         }
 
@@ -42,6 +55,15 @@ final class ReviewProcessor implements ProcessorInterface
         }
 
         return $result;
+    }
+
+    private function hasCompletedBooking(User $owner, User $sitter): bool
+    {
+        return null !== $this->bookings->findOneBy([
+            'owner' => $owner,
+            'sitter' => $sitter,
+            'status' => Booking::STATUS_COMPLETED,
+        ]);
     }
 
     private function recomputeRating(User $sitter): void

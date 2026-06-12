@@ -11,28 +11,64 @@ const tab = ref('overview')
 const stats = ref(null)
 const sitters = ref([])
 const reviews = ref([])
+const reports = ref([])
 const loading = ref(true)
+
+const pendingReports = computed(() => reports.value.filter((r) => r.status === 'pending').length)
 
 async function loadAll() {
   loading.value = true
-  const [s, sit, rev] = await Promise.all([
+  const [s, sit, rev, rep] = await Promise.all([
     api.get('/admin/stats'),
     api.get('/pet_sitter_profiles', { params: { 'order[verified]': 'asc', pagination: false } }),
     api.get('/reviews'),
+    api.get('/reports'),
   ])
   stats.value = s.data
   sitters.value = sit.data
   reviews.value = rev.data
+  reports.value = rep.data
   loading.value = false
 }
 
+async function setReportStatus(report, status) {
+  const { data } = await api.patch(`/reports/${report.id}`, { status }, {
+    headers: { 'Content-Type': 'application/merge-patch+json' },
+  })
+  report.status = data.status
+}
+
+const reasonLabels = {
+  contournement: 'Contact hors plateforme',
+  comportement: 'Comportement inapproprié',
+  fraude: 'Fraude / arnaque',
+  spam: 'Spam',
+  autre: 'Autre',
+}
+
+const kycError = ref('')
+
 async function toggleVerify(sitter) {
-  const { data } = await api.post(`/admin/sitters/${sitter.id}/verify`, {})
-  sitter.verified = data.verified
-  if (stats.value) {
-    stats.value.sittersVerified += data.verified ? 1 : -1
-    stats.value.sittersPending += data.verified ? -1 : 1
+  kycError.value = ''
+  try {
+    const { data } = await api.post(`/admin/sitters/${sitter.id}/verify`, {})
+    sitter.verified = data.verified
+    if (stats.value) {
+      stats.value.sittersVerified += data.verified ? 1 : -1
+      stats.value.sittersPending += data.verified ? -1 : 1
+    }
+  } catch (e) {
+    if (e.response?.status === 422) {
+      kycError.value = e.response.data.error
+    } else {
+      throw e
+    }
   }
+}
+
+async function showDocument(sitter) {
+  const { data } = await api.get(`/admin/sitters/${sitter.id}/document`)
+  alert(`Pièce d'identité de ${data.sitter} :\n${data.idDocument}`)
 }
 
 async function deleteReview(r) {
@@ -163,6 +199,10 @@ onMounted(loadAll)
       <v-tab value="overview" prepend-icon="mdi-chart-box">{{ t('admin.overview') }}</v-tab>
       <v-tab value="sitters" prepend-icon="mdi-paw">{{ t('admin.sitters') }}</v-tab>
       <v-tab value="reviews" prepend-icon="mdi-star">{{ t('admin.moderation') }}</v-tab>
+      <v-tab value="reports" prepend-icon="mdi-flag">
+        Signalements
+        <v-badge v-if="pendingReports" :content="pendingReports" color="error" inline />
+      </v-tab>
     </v-tabs>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" />
@@ -246,6 +286,9 @@ onMounted(loadAll)
 
       <!-- ============ GARDIENS ============ -->
       <v-window-item value="sitters">
+        <v-alert v-if="kycError" type="error" variant="tonal" density="compact" class="mb-3" closable @click:close="kycError = ''">
+          {{ kycError }}
+        </v-alert>
         <v-card border flat>
           <v-table>
             <thead>
@@ -254,6 +297,7 @@ onMounted(loadAll)
                 <th>{{ t('search.city') }}</th>
                 <th>{{ t('sitter.rate') }}</th>
                 <th>{{ t('sitter.reviews') }}</th>
+                <th>KYC</th>
                 <th>Statut</th>
                 <th class="text-end">Action</th>
               </tr>
@@ -264,6 +308,11 @@ onMounted(loadAll)
                 <td>{{ s.user?.city?.name }}</td>
                 <td>{{ s.dailyRate }} {{ t('currency') }}</td>
                 <td>{{ s.rating }} ({{ s.reviewCount }})</td>
+                <td>
+                  <v-chip v-if="s.idDocumentSubmitted" color="info" size="small" prepend-icon="mdi-card-account-details"
+                    style="cursor:pointer" @click="showDocument(s)">Document fourni</v-chip>
+                  <v-chip v-else color="grey" size="small" variant="outlined">Aucun document</v-chip>
+                </td>
                 <td>
                   <v-chip v-if="s.verified" color="success" size="small" prepend-icon="mdi-check-decagram">{{ t('sitterProfile.verified') }}</v-chip>
                   <v-chip v-else color="warning" size="small">{{ t('admin.pending') }}</v-chip>
@@ -301,6 +350,46 @@ onMounted(loadAll)
           </v-list>
         </v-card>
         <v-alert v-else type="info" variant="tonal">{{ t('sitter.noReviews') }}</v-alert>
+      </v-window-item>
+
+      <!-- ============ SIGNALEMENTS ============ -->
+      <v-window-item value="reports">
+        <v-card border flat v-if="reports.length">
+          <v-table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Signalé par</th>
+                <th>Utilisateur signalé</th>
+                <th>Motif</th>
+                <th>Détails</th>
+                <th>Statut</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in reports" :key="r.id">
+                <td>{{ new Date(r.createdAt).toLocaleDateString('fr-FR') }}</td>
+                <td>{{ r.reporter?.fullName }}</td>
+                <td><strong>{{ r.reported?.fullName }}</strong></td>
+                <td>{{ reasonLabels[r.reason] || r.reason }}</td>
+                <td class="text-caption" style="max-width: 220px">{{ r.details }}</td>
+                <td>
+                  <v-chip v-if="r.status === 'pending'" color="warning" size="small">En attente</v-chip>
+                  <v-chip v-else-if="r.status === 'resolved'" color="success" size="small">Traité</v-chip>
+                  <v-chip v-else color="grey" size="small">Classé</v-chip>
+                </td>
+                <td class="text-end">
+                  <template v-if="r.status === 'pending'">
+                    <v-btn color="success" size="small" variant="tonal" class="me-1" @click="setReportStatus(r, 'resolved')">Traiter</v-btn>
+                    <v-btn color="grey" size="small" variant="tonal" @click="setReportStatus(r, 'dismissed')">Classer</v-btn>
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card>
+        <v-alert v-else type="info" variant="tonal">Aucun signalement.</v-alert>
       </v-window-item>
     </v-window>
   </v-container>

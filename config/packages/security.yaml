@@ -16,6 +16,10 @@ security:
         login:
             pattern: ^/api/login
             stateless: true
+            # Anti force-brute : 5 tentatives max par minute (par IP + identifiant)
+            login_throttling:
+                max_attempts: 5
+                interval: '1 minute'
             json_login:
                 check_path: /api/login_check
                 username_path: email

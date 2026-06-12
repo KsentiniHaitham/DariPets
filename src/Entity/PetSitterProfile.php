@@ -104,6 +104,15 @@ class PetSitterProfile
     #[Groups(['sitter:read', 'sitter:write'])]
     private ?int $serviceRadius = 10;
 
+    /**
+     * Pièce d'identité (n° CIN ou lien vers le document) — KYC.
+     * Jamais sérialisée en lecture publique : seul l'admin y accède
+     * via /api/admin/sitters/{id}/document.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['sitter:write'])]
+    private ?string $idDocument = null;
+
     public function __construct()
     {
         $this->services = new ArrayCollection();
@@ -253,5 +262,23 @@ class PetSitterProfile
     {
         $this->serviceRadius = $serviceRadius;
         return $this;
+    }
+
+    public function getIdDocument(): ?string
+    {
+        return $this->idDocument;
+    }
+
+    public function setIdDocument(?string $idDocument): static
+    {
+        $this->idDocument = $idDocument;
+        return $this;
+    }
+
+    /** Indique si le gardien a soumis sa pièce d'identité (sans l'exposer). */
+    #[Groups(['sitter:read'])]
+    public function isIdDocumentSubmitted(): bool
+    {
+        return $this->idDocument !== null && $this->idDocument !== '';
     }
 }
