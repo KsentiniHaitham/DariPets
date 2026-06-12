@@ -102,6 +102,19 @@ onMounted(() => {
 })
 onUnmounted(() => clearInterval(pollTimer))
 
+// --- Emojis ---
+const emojiMenu = ref(false)
+const emojis = [
+  '😀', '😂', '🥰', '😍', '😊', '😉', '🤗', '😎',
+  '👍', '👋', '🙏', '👏', '💪', '🤝', '✅', '❤️',
+  '🐶', '🐱', '🐦', '🐰', '🐾', '🦴', '🏠', '🌳',
+  '😅', '😢', '😮', '🤔', '⏰', '📅', '💰', '🎉',
+]
+
+function addEmoji(e) {
+  draft.value += e
+}
+
 // --- Signalement d'utilisateur ---
 const reportDialog = ref(false)
 const reportReason = ref('comportement')
@@ -168,7 +181,18 @@ async function sendReport() {
             </div>
           </div>
           <v-divider />
-          <div class="pa-3 d-flex ga-2">
+          <div class="pa-3 d-flex ga-2 align-center">
+            <v-menu v-model="emojiMenu" :close-on-content-click="false" location="top start">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" variant="text" icon="mdi-emoticon-outline" />
+              </template>
+              <v-card class="pa-2" max-width="260">
+                <div class="d-flex flex-wrap">
+                  <v-btn v-for="e in emojis" :key="e" variant="text" density="comfortable" size="small"
+                    class="text-h6 pa-0" min-width="32" @click="addEmoji(e)">{{ e }}</v-btn>
+                </div>
+              </v-card>
+            </v-menu>
             <v-text-field v-model="draft" :placeholder="t('messages.placeholder')" hide-details density="comfortable"
               @keyup.enter="send" />
             <v-btn color="primary" icon="mdi-send" :loading="sending" @click="send" />
