@@ -4,10 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import api from '@/services/api.js'
 import { useAuthStore } from '@/stores/auth.js'
+import { useUnreadStore } from '@/stores/unread.js'
 
 const { t } = useI18n()
 const route = useRoute()
 const auth = useAuthStore()
+const unread = useUnreadStore()
 
 const conversations = ref([])
 const active = ref(null)
@@ -24,6 +26,17 @@ function scrollToBottom() {
   })
 }
 
+// Marque la conversation comme lue côté serveur et rafraîchit le badge navbar
+async function markRead(c) {
+  if (!c) return
+  try {
+    await api.post(`/conversations/${c.id}/read`, {})
+    unread.fetch()
+  } catch {
+    // non bloquant
+  }
+}
+
 async function load() {
   const { data } = await api.get('/conversations')
   conversations.value = data
@@ -32,6 +45,7 @@ async function load() {
     const wanted = route.query.c ? data.find((x) => x.id === Number(route.query.c)) : null
     active.value = wanted || data[0]
     scrollToBottom()
+    markRead(active.value)
   }
   loading.value = false
 }
@@ -39,6 +53,7 @@ async function load() {
 function selectConversation(c) {
   active.value = c
   scrollToBottom()
+  markRead(c)
 }
 
 async function send() {
@@ -73,6 +88,7 @@ async function refreshActive() {
     if ((data.messages?.length ?? 0) > (active.value.messages?.length ?? 0)) {
       active.value.messages = data.messages
       scrollToBottom()
+      markRead(active.value)
     }
   } catch {
     // silencieux : on retentera au prochain tick

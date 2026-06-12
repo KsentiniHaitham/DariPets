@@ -31,4 +31,5 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Au démarrage : génère les clés JWT si absentes, applique le schéma, warmup, puis Apache
 CMD php bin/console doctrine:schema:update --force --no-interaction \
     && php bin/console cache:warmup \
+    && chown -R www-data:www-data var \
     && apache2-foreground

@@ -1,15 +1,27 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
+import { useUnreadStore } from '@/stores/unread.js'
 import { SUPPORTED_LOCALES } from '@/plugins/i18n.js'
 import BrandLogo from '@/components/BrandLogo.vue'
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+const unread = useUnreadStore()
 const drawer = ref(false)
+
+// Démarre/arrête le polling du compteur de non-lus selon la connexion
+watch(
+  () => auth.isAuthenticated,
+  (connected) => {
+    if (connected && !auth.isAdmin) unread.startPolling()
+    else unread.stopPolling()
+  },
+  { immediate: true },
+)
 
 // Liens principaux selon le rôle de l'utilisateur
 const navLinks = computed(() => {
@@ -64,7 +76,11 @@ function logout() {
         </v-btn>
 
         <template v-if="auth.isAuthenticated">
-          <v-btn v-if="!auth.isAdmin" variant="text" :to="{ name: 'messages' }" icon="mdi-message-outline" />
+          <v-btn v-if="!auth.isAdmin" variant="text" :to="{ name: 'messages' }" icon>
+            <v-badge :content="unread.count" color="error" :model-value="unread.count > 0">
+              <v-icon>mdi-message-outline</v-icon>
+            </v-badge>
+          </v-btn>
           <v-menu>
             <template #activator="{ props }">
               <v-btn v-bind="props" variant="tonal" color="primary" prepend-icon="mdi-account-circle">
@@ -102,7 +118,11 @@ function logout() {
       <v-list-item v-for="link in navLinks" :key="link.label" :to="link.to" :prepend-icon="link.icon" :title="link.label" />
       <v-divider />
       <template v-if="auth.isAuthenticated">
-        <v-list-item v-if="!auth.isAdmin" :to="{ name: 'messages' }" prepend-icon="mdi-message-outline" :title="t('nav.messages')" />
+        <v-list-item v-if="!auth.isAdmin" :to="{ name: 'messages' }" prepend-icon="mdi-message-outline" :title="t('nav.messages')">
+          <template #append>
+            <v-badge v-if="unread.count > 0" :content="unread.count" color="error" inline />
+          </template>
+        </v-list-item>
         <v-list-item v-if="auth.isAdmin" :to="{ name: 'admin' }" prepend-icon="mdi-shield-account" :title="t('nav.admin')" />
         <v-list-item v-else :to="{ name: 'dashboard' }" prepend-icon="mdi-view-dashboard" :title="t('nav.dashboard')" />
         <v-list-item @click="logout" prepend-icon="mdi-logout" :title="t('nav.logout')" />

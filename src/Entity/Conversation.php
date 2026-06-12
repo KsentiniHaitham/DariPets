@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     operations: [
         new GetCollection(security: "is_granted('ROLE_USER')"),
-        new Get(security: "is_granted('ROLE_USER') and user in object.getParticipants()"),
+        new Get(security: "is_granted('ROLE_USER') and object.getParticipants().contains(user)"),
         new Post(security: "is_granted('ROLE_USER')"),
     ],
     normalizationContext: ['groups' => ['conversation:read']],
