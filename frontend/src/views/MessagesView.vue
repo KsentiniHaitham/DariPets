@@ -46,6 +46,10 @@ onMounted(load)
 <template>
   <v-container class="py-8">
     <h1 class="text-h5 font-weight-bold mb-4">{{ t('messages.title') }}</h1>
+    <v-alert type="info" variant="tonal" density="compact" class="mb-4" icon="mdi-shield-lock">
+      Pour votre sécurité, les numéros de téléphone, e-mails et liens sont masqués
+      dans les messages tant qu'aucune réservation payée n'existe entre vous.
+    </v-alert>
     <v-card border flat v-if="conversations.length">
       <v-row no-gutters style="min-height: 480px">
         <v-col cols="12" md="4" class="border-e">
