@@ -37,13 +37,38 @@ async function markRead(c) {
   }
 }
 
+// Date du dernier message d'une conversation (0 si vide)
+const lastActivity = (c) => {
+  const last = c.messages?.at(-1)
+  return last ? new Date(last.sentAt).getTime() : 0
+}
+
+// Conversation contenant le message non lu le plus récent (reçu, pas envoyé)
+function latestUnreadConversation(list) {
+  let best = null
+  let bestTime = 0
+  for (const c of list) {
+    for (const m of c.messages || []) {
+      if (!m.isRead && m.sender?.id !== auth.user.id) {
+        const t = new Date(m.sentAt).getTime()
+        if (t > bestTime) {
+          bestTime = t
+          best = c
+        }
+      }
+    }
+  }
+  return best
+}
+
 async function load() {
   const { data } = await api.get('/conversations')
-  conversations.value = data
+  // Conversations les plus récentes en premier
+  conversations.value = [...data].sort((a, b) => lastActivity(b) - lastActivity(a))
   if (data.length && !active.value) {
-    // Ouvre la conversation demandée via ?c=ID (depuis le bouton « Contacter »)
+    // Priorité : ?c=ID (bouton « Contacter ») > conversation avec non-lu récent > plus récente
     const wanted = route.query.c ? data.find((x) => x.id === Number(route.query.c)) : null
-    active.value = wanted || data[0]
+    active.value = wanted || latestUnreadConversation(data) || conversations.value[0]
     scrollToBottom()
     markRead(active.value)
   }
