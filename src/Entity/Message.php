@@ -51,6 +51,16 @@ class Message
     #[Groups(['message:read', 'conversation:read'])]
     private bool $isRead = false;
 
+    /** Distribué : l'app du destinataire l'a reçu (heartbeat). */
+    #[ORM\Column(nullable: true)]
+    #[Groups(['message:read', 'conversation:read'])]
+    private ?\DateTimeImmutable $deliveredAt = null;
+
+    /** Lu : le destinataire a ouvert la conversation. */
+    #[ORM\Column(nullable: true)]
+    #[Groups(['message:read', 'conversation:read'])]
+    private ?\DateTimeImmutable $readAt = null;
+
     public function __construct()
     {
         $this->sentAt = new \DateTimeImmutable();
@@ -107,6 +117,28 @@ class Message
     public function setIsRead(bool $isRead): static
     {
         $this->isRead = $isRead;
+        return $this;
+    }
+
+    public function getDeliveredAt(): ?\DateTimeImmutable
+    {
+        return $this->deliveredAt;
+    }
+
+    public function setDeliveredAt(?\DateTimeImmutable $deliveredAt): static
+    {
+        $this->deliveredAt = $deliveredAt;
+        return $this;
+    }
+
+    public function getReadAt(): ?\DateTimeImmutable
+    {
+        return $this->readAt;
+    }
+
+    public function setReadAt(?\DateTimeImmutable $readAt): static
+    {
+        $this->readAt = $readAt;
         return $this;
     }
 }

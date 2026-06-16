@@ -5,18 +5,43 @@ namespace App\Controller;
 use App\Entity\Conversation;
 use App\Entity\User;
 use App\Repository\MessageRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Endpoints utilitaires de messagerie : compteur de non-lus + marquage comme lu.
+ * Endpoints utilitaires de messagerie : compteur de non-lus, marquage comme lu,
+ * et heartbeat (présence en ligne + accusés « distribué »).
  */
 #[Route('/api')]
 class MessagingController extends AbstractController
 {
-    public function __construct(private MessageRepository $messages)
+    public function __construct(
+        private MessageRepository $messages,
+        private EntityManagerInterface $em,
+    ) {
+    }
+
+    /**
+     * Heartbeat appelé périodiquement par le client connecté :
+     *  - met à jour lastSeenAt (statut « en ligne ») ;
+     *  - marque comme « distribués » les messages reçus (l'app est en ligne) ;
+     *  - renvoie le nombre de messages non lus (pour le badge navbar).
+     */
+    #[Route('/messages/heartbeat', name: 'messages_heartbeat', methods: ['POST'], priority: 10)]
+    public function heartbeat(): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $user->setLastSeenAt(new \DateTimeImmutable());
+        $this->em->flush();
+
+        $this->messages->markDeliveredFor($user);
+
+        return $this->json(['count' => $this->messages->countUnreadFor($user)]);
     }
 
     /**

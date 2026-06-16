@@ -10,7 +10,9 @@ export const useUnreadStore = defineStore('unread', {
   actions: {
     async fetch() {
       try {
-        const { data } = await api.get('/messages/unread-count')
+        // Le heartbeat met aussi à jour la présence « en ligne » et marque
+        // les messages reçus comme « distribués », puis renvoie le compteur.
+        const { data } = await api.post('/messages/heartbeat', {})
         this.count = data.count
       } catch {
         // silencieux : on retentera au prochain tick

@@ -72,12 +72,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'message:read', 'review:read', 'report:read'])]
+    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'message:read', 'review:read', 'report:read', 'conversation:read'])]
     private string $firstName;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
-    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'review:read', 'report:read'])]
+    #[Groups(['user:read', 'user:write', 'sitter:read', 'booking:read', 'review:read', 'report:read', 'conversation:read'])]
     private string $lastName;
 
     #[ORM\Column(length: 30, nullable: true)]
@@ -95,7 +95,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?City $city = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['user:read', 'user:write', 'sitter:read', 'message:read', 'review:read'])]
+    #[Groups(['user:read', 'user:write', 'sitter:read', 'message:read', 'review:read', 'conversation:read'])]
     private ?string $avatar = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -105,6 +105,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     #[Groups(['user:read'])]
     private \DateTimeImmutable $createdAt;
+
+    /** Dernière activité (mise à jour par le heartbeat) — pour le statut « en ligne ». */
+    #[ORM\Column(nullable: true)]
+    #[Groups(['user:read', 'sitter:read', 'conversation:read', 'message:read'])]
+    private ?\DateTimeImmutable $lastSeenAt = null;
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: PetSitterProfile::class, cascade: ['persist', 'remove'])]
     #[Groups(['user:read'])]
@@ -309,9 +314,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    #[Groups(['user:read', 'sitter:read', 'message:read', 'review:read', 'report:read'])]
+    #[Groups(['user:read', 'sitter:read', 'message:read', 'review:read', 'report:read', 'conversation:read'])]
     public function getFullName(): string
     {
         return trim($this->firstName . ' ' . $this->lastName);
+    }
+
+    public function getLastSeenAt(): ?\DateTimeImmutable
+    {
+        return $this->lastSeenAt;
+    }
+
+    public function setLastSeenAt(?\DateTimeImmutable $lastSeenAt): static
+    {
+        $this->lastSeenAt = $lastSeenAt;
+        return $this;
     }
 }
